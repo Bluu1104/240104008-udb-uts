@@ -1,0 +1,62 @@
+version: "3.8"
+
+services:
+  uts_mysql:
+    image: mysql:8.0
+    container_name: uts_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_uts
+      MYSQL_DATABASE: uts_db
+      MYSQL_USER: uts_user
+      MYSQL_PASSWORD: uts_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      uts_internal_net:
+        ipv4_address: 172.28.8.10
+    ports:
+      - "172.27.24.224:3308:3306"
+
+  uts_phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: uts_phpmyadmin
+    restart: always
+    environment:
+      PMA_HOST: uts_mysql
+      PMA_USER: uts_user
+      PMA_PASSWORD: uts_password
+    depends_on:
+      - uts_mysql
+    networks:
+      uts_internal_net:
+        ipv4_address: 172.28.8.20
+
+
+  uts_caddy:
+    image: caddy:latest
+    container_name: uts_caddy
+    restart: always
+    ports:
+      - "808:80"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - uts_phpmyadmin
+    networks:
+      uts_internal_net:
+        ipv4_address: 172.28.8.30
+
+networks:
+  uts_internal_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.8.0/24
+
+volumes:
+  mysql_data:
+  caddy_data:
+  caddy_config:
